@@ -9,6 +9,7 @@ import Input from "@/components/Input";
 import * as Icons from 'phosphor-react-native'
 const Login = () => {
   const emailRef = useRef("");
+  const passwordRef = useRef("");
   return (
     <ScreenWrapper>
       <View style={styles.container}>
