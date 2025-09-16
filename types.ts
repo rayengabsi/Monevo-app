@@ -134,10 +134,10 @@ export type UserDataType = {
   name: string;
   image?: any;
 };
-
 export type AuthContextType = {
-  user: UserType;
-  setUser: Function;
+  user: UserType | null;
+  setUser: React.Dispatch<React.SetStateAction<UserType | null>>;
+  isLoading: boolean;
   login: (
     email: string,
     password: string
@@ -147,8 +147,10 @@ export type AuthContextType = {
     password: string,
     name: string
   ) => Promise<{ success: boolean; msg?: string }>;
+  logout: () => Promise<{ success: boolean; msg?: string }>;
   updateUserData: (userId: string) => Promise<void>;
 };
+
 
 export type ResponseType = {
   success: boolean;

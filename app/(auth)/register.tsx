@@ -1,14 +1,15 @@
-import { StyleSheet, View, ScrollView, Pressable, Alert } from "react-native";
-import React, { useRef, useState } from "react";
+import BackButton from "@/components/BackButton";
+import Button from "@/components/Button";
+import Input from "@/components/Input";
+import ScreenWrapper from "@/components/ScreenWrapper";
+import Typo from "@/components/typo";
+import { useAuth } from "@/config/contexts/authContext";
 import { colors, spacingX, spacingY } from "@/constants/theme";
 import { verticalScale } from "@/utils/styling";
-import ScreenWrapper from "@/components/ScreenWrapper";
-import BackButton from "@/components/BackButton";
-import Typo from "@/components/typo";
-import Input from "@/components/Input";
-import * as Icons from "phosphor-react-native";
-import Button from "@/components/Button";
 import { useRouter } from "expo-router";
+import * as Icons from "phosphor-react-native";
+import React, { useRef, useState } from "react";
+import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 const Register = () => {
   const emailRef = useRef("");
@@ -16,21 +17,35 @@ const Register = () => {
   const nameRef = useRef("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-
+  const { register: registerUser } = useAuth();
   const handleSubmit = async () => {
     if (!emailRef.current || !passwordRef.current || !nameRef.current) {
       Alert.alert("Sign up", "Please fill all the fields");
       return;
     }
-    console.log("email:", emailRef.current);
-    console.log("password:", passwordRef.current);
-    console.log("name:", nameRef.current);
-    console.log("good to go");
+    setIsLoading(true);
+    const res = await registerUser(
+      emailRef.current,
+      passwordRef.current,
+      nameRef.current
+    );
+    setIsLoading(false);
+    console.log("Register response:", res);
+    if(!res.success){
+      Alert.alert("Sign up", res.msg || "An error occurred during sign up");
+    }
   };
 
   return (
     <ScreenWrapper>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", paddingHorizontal: spacingX._25, paddingTop: spacingY._20 }}>
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "center",
+          paddingHorizontal: spacingX._25,
+          paddingTop: spacingY._20,
+        }}
+      >
         <View style={styles.container}>
           <BackButton iconSize={28} />
 
@@ -48,13 +63,12 @@ const Register = () => {
             <Typo size={16} color={colors.textLighter}>
               Create an account to track your expenses
             </Typo>
-             <Input
+            <Input
               placeholder="Enter your name"
-              secureTextEntry
+             
               onChangeText={(value) => (nameRef.current = value)}
-
               icon={
-                <Icons.User 
+                <Icons.User
                   size={verticalScale(20)}
                   color={colors.neutral400}
                   weight="fill"
@@ -88,8 +102,6 @@ const Register = () => {
                 />
               }
             />
-
-
 
             <Button loading={isLoading} onPress={handleSubmit}>
               <Typo fontWeight="700" color={colors.black} size={21}>

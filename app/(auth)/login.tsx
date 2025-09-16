@@ -3,6 +3,7 @@ import Button from "@/components/Button";
 import Input from "@/components/Input";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import Typo from "@/components/typo";
+import { useAuth } from "@/config/contexts/authContext";
 import { colors, spacingX, spacingY } from "@/constants/theme";
 import { verticalScale } from "@/utils/styling";
 import { useRouter } from "expo-router";
@@ -15,15 +16,22 @@ const Login = () => {
   const passwordRef = useRef("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-
+  const { login: loginUser } = useAuth();
   const handleSubmit = async () => {
     if (!emailRef.current || !passwordRef.current) {
       Alert.alert("Login", "Please fill all the fields");
       return;
     }
-    console.log("email:", emailRef.current);
-    console.log("password:", passwordRef.current);
-    console.log("good to go");
+    setIsLoading(true);
+      const res = await loginUser(
+        emailRef.current,
+        passwordRef.current
+      );
+      setIsLoading(false);
+      console.log("Login response:", res);
+      if(!res.success){
+        Alert.alert("Login", res.msg || "An error occurred during login");
+      }
   };
 
   return (
