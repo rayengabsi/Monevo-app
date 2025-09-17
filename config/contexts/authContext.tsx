@@ -9,7 +9,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { auth, firestore } from "../firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useRouter, useSegments } from "expo-router";
-import { View, Text } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 
 const authContext = createContext<AuthContextType | null>(null);
 
@@ -19,12 +19,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
   const segments = useSegments();
 
+  // Debug logging for current state
+  useEffect(() => {
+    console.log("AuthProvider state:", {
+      user: user ? { uid: user.uid, email: user.email } : null,
+      isLoading,
+      segments,
+      currentPath: segments.join('/')
+    });
+  }, [user, isLoading, segments]);
+
   // Handle Firebase auth state changes
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log("firebaseUser", firebaseUser);
+      console.log("🔥 Firebase auth state changed:", {
+        hasUser: !!firebaseUser,
+        uid: firebaseUser?.uid,
+        email: firebaseUser?.email
+      });
 
       if (firebaseUser) {
+        console.log("✅ User authenticated, updating user data...");
         // Update user state
         setUser({
           uid: firebaseUser.uid,
@@ -35,10 +50,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Optionally update user data from Firestore
         await updateUserData(firebaseUser.uid);
       } else {
+        console.log("❌ No user, clearing user state...");
         setUser(null);
       }
       
-      // Auth state is now determined
+      console.log("🏁 Setting isLoading to false");
       setIsLoading(false);
     });
 
@@ -46,22 +62,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Handle navigation based on auth state
- useEffect(() => {
-  if (isLoading) return; // wait until Firebase state is resolved
+  useEffect(() => {
+    if (isLoading) return; // wait until Firebase state is resolved
 
-  const inTabsGroup = segments[0] === "(tabs)";
-  const inAuthGroup = segments[0] === "(auth)" || segments[0] === "welcome";
+    const inTabsGroup = segments[0] === "(tabs)";
+    const inAuthGroup = segments[0] === "(auth)";
 
-  console.log("Navigation check:", { user: !!user, inTabsGroup, inAuthGroup, segments });
+    console.log("Navigation check:", { 
+      user: !!user, 
+      inTabsGroup, 
+      inAuthGroup, 
+      segments,
+      currentRoute: segments.join('/')
+    });
 
-  if (user && !inTabsGroup) {
-    // Logged in but outside protected routes → go to home
-    router.replace("/(tabs)");
-  } else if (!user && inTabsGroup) {
-    // Not logged in but inside protected routes → go back to welcome
-    router.replace("/welcome");
-  }
-}, [user, segments, isLoading]);
+    if (user && !inTabsGroup) {
+      // Logged in but outside protected routes → go to home
+      console.log("Redirecting to tabs (user logged in)");
+      router.replace("/(tabs)");
+    } else if (!user && !inAuthGroup) {
+      // Not logged in and not in auth group → go to welcome
+      console.log("Redirecting to welcome (no user)");
+      router.replace("/(auth)/welcome");
+    } else if (!user && inTabsGroup) {
+      // Not logged in but inside protected routes → go back to welcome
+      console.log("Redirecting to welcome from tabs (no user)");
+      router.replace("/(auth)/welcome");
+    }
+  }, [user, segments, isLoading, router]);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; msg?: string }> => {
     try {
@@ -138,7 +166,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA' }}>
-        <Text style={{ fontSize: 18, color: '#666' }}>Loading...</Text>
+        <Text style={{ fontSize: 18, color: '#666', marginBottom: 20 }}>Loading...</Text>
+        <Text style={{ fontSize: 14, color: '#999', marginBottom: 20 }}>
+          Current route: {segments.join('/') || 'root'}
+        </Text>
+        {/* Debug button - remove after testing */}
+        <TouchableOpacity 
+          onPress={() => router.replace('/(auth)/welcome')}
+          style={{ backgroundColor: '#007AFF', padding: 10, borderRadius: 5 }}
+        >
+          <Text style={{ color: 'white' }}>Force Navigate to Welcome</Text>
+        </TouchableOpacity>
       </View>
     );
   }

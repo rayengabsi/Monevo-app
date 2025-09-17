@@ -1,15 +1,15 @@
-import { StyleSheet, Text, View } from "react-native";
-import React, { use } from "react";
-import { colors } from "@/constants/theme";
-import Typo from "@/components/typo";
-import { signOut } from "firebase/auth";
-import { auth } from "@/config/firebase";
 import Button from "@/components/Button";
+import Typo from "@/components/typo";
 import { useAuth } from "@/config/contexts/authContext";
+import { auth } from "@/config/firebase";
+import { colors } from "@/constants/theme";
+import { signOut } from "firebase/auth";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 const Home = () => {
-    const {user}= useAuth();
-    console.log("Current user in Home:", user);
+  const { user } = useAuth();
+  console.log("Current user in Home:", user);
   const handleLogout = async () => {
     await signOut(auth);
   };
