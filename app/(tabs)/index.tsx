@@ -1,4 +1,5 @@
 import Button from "@/components/Button";
+import ScreenWrapper from "@/components/ScreenWrapper";
 import Typo from "@/components/typo";
 import { useAuth } from "@/config/contexts/authContext";
 import { auth } from "@/config/firebase";
@@ -15,12 +16,12 @@ const Home = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Home</Text>
+    <ScreenWrapper>
+      <Typo>Home</Typo>
       <Button onPress={handleLogout}>
         <Typo color={colors.black}>Logout</Typo>
       </Button>
-    </View>
+    </ScreenWrapper>
   );
 };
 
