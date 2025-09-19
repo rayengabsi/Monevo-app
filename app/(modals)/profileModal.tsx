@@ -1,12 +1,12 @@
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import React from 'react';
-import { useRouter } from 'expo-router';
-import ScreenWrapper from '@/components/ScreenWrapper';
-import Header from '@/components/Header';
-import Typo from '@/components/typo';
-import { colors, spacingX, spacingY } from '@/constants/theme';
-import * as Icons from 'phosphor-react-native';
-import { useAuth } from '@/config/contexts/authContext';
+import ScreenWrapper from "@/components/ScreenWrapper";
+import Typo from "@/components/typo";
+import { useAuth } from "@/config/contexts/authContext";
+import { colors, spacingX, spacingY } from "@/constants/theme";
+import { scale, verticalScale } from "@/utils/styling";
+import { useRouter } from "expo-router";
+import * as Icons from "phosphor-react-native";
+import React from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 const ProfileModal = () => {
   const router = useRouter();
@@ -78,48 +78,54 @@ export default ProfileModal;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: "space-between",
+    paddingHorizontal: spacingY._20,
+    // paddingVertical: spacingY ._ 30,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  footer: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
     paddingHorizontal: spacingX._20,
-    paddingVertical: spacingY._15,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral600,
+    gap: scale(12),
+    paddingTop: spacingY._15,
+    borderTopColor: colors.neutral700,
+    marginBottom: spacingY._5,
+    borderTopWidth: 1,
   },
-  closeButton: {
-    padding: 8,
+  form: {
+    gap: spacingY._30,
+    marginTop: spacingY._15,
   },
-  placeholder: {
-    width: 40, // Same width as close button for centering
+  avatarContainer: {
+    position: "relative",
+    alignSelf: "center",
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacingX._20,
-    paddingTop: spacingY._20,
+  avatar: {
+    alignSelf: "center",
+    backgroundColor: colors.neutral300,
+    height: verticalScale(135),
+    width: verticalScale(135),
+    borderRadius: 200,
+    borderWidth: 1,
+    borderColor: colors.neutral500,
+    // overflow: "hidden",
+    //position: "relative",
+  },
+  editIcon: {
+    position: "absolute",
+    bottom: spacingY._5,
+    right: spacingY._7,
+    borderRadius: 100,
+    backgroundColor: colors.neutral100,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 4,
+    padding: spacingY._7,
+  },
+  inputContainer: {
     gap: spacingY._10,
-  },
-  userInfo: {
-    backgroundColor: colors.neutral700 || '#333',
-    padding: spacingX._15,
-    borderRadius: 12,
-    gap: spacingY._7,
-    marginBottom: spacingY._10,
-  },
-  formSection: {
-    backgroundColor: colors.neutral700 || '#333',
-    padding: spacingX._15,
-    borderRadius: 12,
-    gap: spacingY._7,
-    marginTop: spacingY._10,
-  },
-  saveButton: {
-    backgroundColor: colors.primary || '#6366f1',
-    padding: spacingY._15,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 'auto',
-    marginBottom: spacingY._20,
   },
 });
