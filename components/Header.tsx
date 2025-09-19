@@ -26,13 +26,13 @@ export default Header
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
+    width : "100%",
     alignItems: "center",
-    justifyContent: "center",
-    padding: 10,
+    flexDirection: "row",
+
+
   },
   leftIcon: {
-    position: "absolute",
-    left: 10,
+    alignSelf: 'flex-start'
   },
 })
