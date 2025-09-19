@@ -10,17 +10,17 @@ import { StyleSheet, Text, View } from "react-native";
 
 const Home = () => {
   const { user } = useAuth();
-  console.log("Current user in Home:", user);
-  const handleLogout = async () => {
-    await signOut(auth);
-  };
+ // console.log("Current user in Home:", user);
+//  const handleLogout = async () => {
+ //   await signOut(auth);
+  //};
 
   return (
     <ScreenWrapper>
       <Typo>Home</Typo>
-      <Button onPress={handleLogout}>
+      {/* <Button onPress={handleLogout}>
         <Typo color={colors.black}>Logout</Typo>
-      </Button>
+      </Button> */}
     </ScreenWrapper>
   );
 };
