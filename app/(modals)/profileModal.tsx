@@ -1,75 +1,120 @@
-import ScreenWrapper from "@/components/ScreenWrapper";
+import BackButton from "@/components/BackButton";
+import ModalWrapper from "@/components/ModalWrapper";
 import Typo from "@/components/typo";
 import { useAuth } from "@/config/contexts/authContext";
 import { colors, spacingX, spacingY } from "@/constants/theme";
 import { scale, verticalScale } from "@/utils/styling";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import * as Icons from "phosphor-react-native";
-import React from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
-
+import React, { useEffect, useState } from "react";
+import { StyleSheet, TouchableOpacity, View, ScrollView, Alert } from "react-native";
+import { Image } from "expo-image";
+import { getProfileImage } from "@/services/imageService";
+import Input from "@/components/Input";
+import { UserDataType } from "@/types";
+import Button from "@/components/Button";
+import { updateUser } from "@/services/UserService";
+import * as ImagePicker from 'expo-image-picker';
 const ProfileModal = () => {
-  const router = useRouter();
-  const { user } = useAuth();
+  const { user, updateUserData } = useAuth();
+  const [userData, setUserData] = useState<UserDataType>({
+    name: "",
+    image: null,
+  });
+  const [loading, setLoading] = useState(false);
 
   const handleClose = () => {
     router.back();
   };
 
+  // Fix: Add dependency array to useEffect to prevent infinite re-renders
+  useEffect(() => {
+    if (user) {
+      setUserData({
+        name: user?.name || "",
+        image: user?.image || null,
+      });
+    }
+  }, [user]); // Only run when user changes
+ 
+  const onPickImage= async ()=>{
+     let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      //allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.5,
+    });
+
+    
+
+    if (!result.canceled) {
+      setUserData({...userData,image: result.assets[0]});
+    }
+  }
+  const onSubmit = async () => {
+    const { name, image } = userData;
+    if (!name.trim()) {
+      Alert.alert("User", "Please fill all the fields");
+      return;
+    }
+
+    setLoading(true);
+    const res = await updateUser(user?.uid as string, userData);
+    setLoading(false);
+    
+    if (res.success) {
+      await updateUserData(user?.uid as string);
+      router.back();
+    } else {
+      Alert.alert("User", res.msg);
+    }
+  };
+
   return (
-    <ScreenWrapper>
+    <ModalWrapper>
       <View style={styles.container}>
-        {/* Custom Header with Close Button */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <Icons.X size={24} color={colors.white} weight="bold" />
-          </TouchableOpacity>
-          <Typo size={18} fontWeight="600" color={colors.white}>
-            Edit Profile
+        {/* Custom Header */}
+        <View style={styles.customHeader}>
+          <BackButton />
+          <Typo style={styles.headerTitle}>
+            Update Profile
           </Typo>
           <View style={styles.placeholder} />
         </View>
 
-        <View style={styles.content}>
-          <View style={styles.userInfo}>
-            <Typo size={16} color={colors.neutral300}>
-              Name: {user?.name}
-            </Typo>
-            <Typo size={16} color={colors.neutral300}>
-              Email: {user?.email}
-            </Typo>
+        {/* Form */}
+        <ScrollView contentContainerStyle={styles.form}>
+          <View style={styles.avatarContainer}>
+            <Image
+              style={styles.avatar}
+              source={getProfileImage(userData.image)}
+              contentFit="cover"
+              transition={100}
+            />
+            <TouchableOpacity onPress={onPickImage} style={styles.editIcon}>
+              <Icons.Pencil size={20} color={colors.neutral800} weight="fill" />
+            </TouchableOpacity>
           </View>
-
-          <Typo size={16} color={colors.white}>
-            Profile Modal Content
-          </Typo>
-          <Typo size={14} color={colors.neutral400}>
-            Add your profile editing form here
-          </Typo>
-
-          <View style={styles.formSection}>
-            <Typo size={14} color={colors.neutral400}>
-              • Update profile picture
-            </Typo>
-            <Typo size={14} color={colors.neutral400}>
-              • Change display name
-            </Typo>
-            <Typo size={14} color={colors.neutral400}>
-              • Update bio/description
-            </Typo>
-            <Typo size={14} color={colors.neutral400}>
-              • Change preferences
-            </Typo>
+          
+          <View style={styles.inputContainer}>
+            <Typo color={colors.neutral200}>Name</Typo>
+            <Input 
+              placeholder="Name"
+              value={userData.name}
+              onChangeText={(value) => setUserData({...userData, name: value})}
+            />
           </View>
-
-          <TouchableOpacity style={styles.saveButton} onPress={handleClose}>
-            <Typo size={16} fontWeight="600" color={colors.white}>
-              Save Changes
-            </Typo>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
-    </ScreenWrapper>
+
+      <View style={styles.footer}>
+        <Button onPress={onSubmit} loading={loading} style={{ flex: 1 }}>
+          <Typo color={colors.black} fontWeight={"700"}>
+            Update
+          </Typo>
+        </Button>
+      </View>
+    </ModalWrapper>
   );
 };
 
@@ -78,9 +123,25 @@ export default ProfileModal;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "space-between",
     paddingHorizontal: spacingY._20,
-    // paddingVertical: spacingY ._ 30,
+    paddingTop: spacingY._20,
+  },
+  customHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: spacingY._10,
+    paddingHorizontal: 0,
+    marginBottom: spacingY._20,
+    marginTop: spacingY._10,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: colors.neutral100,
+  },
+  placeholder: {
+    width: 40,
   },
   footer: {
     alignItems: "center",
@@ -109,8 +170,6 @@ const styles = StyleSheet.create({
     borderRadius: 200,
     borderWidth: 1,
     borderColor: colors.neutral500,
-    // overflow: "hidden",
-    //position: "relative",
   },
   editIcon: {
     position: "absolute",
