@@ -18,9 +18,19 @@ const Wallet = () => {
             <Typo size={45} fontWeight={"500"}>
                 ${getTotalBalance()?.toFixed(2)}
             </Typo>
+            <Typo size={45} color={colors.neutral300}>
+              Total Balance 
+            </Typo>
           </View>
         </View>
       </View>
+      {/*wallets */}
+<View style={styles.wallets}></View>
+{/*header */}
+<View style={styles.flexRow}></View>
+<Typo size={30} fontWeight={"500"}>
+              My Wallets
+            </Typo>
     </ScreenWrapper>
   )
 }
@@ -35,6 +45,7 @@ justifyContent: "space-between",
 balanceView: {
 height: verticalScale(160),
 backgroundColor: colors.black,
+
 justifyContent: "center",
 alignItems: "center",
 },
