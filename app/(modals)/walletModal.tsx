@@ -16,6 +16,7 @@ import Button from "@/components/Button";
 import { updateUser } from "@/services/UserService";
 import * as ImagePicker from 'expo-image-picker';
 import ImageUpload from "@/components/ImageUpload";
+import { createOrUpdateWallet } from "@/services/walletService";
 
 const WalletModal = () => {
   const { user, updateUserData } = useAuth();
@@ -29,75 +30,63 @@ const WalletModal = () => {
     router.back();
   };
 
+ 
 
-  const onPickImage= async ()=>{
-     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      //allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.5,
-    });
-
-    
-
-    if (!result.canceled) {
-     // setUserData({...userData,image: result.assets[0]});
-    }
-  }
   const onSubmit = async () => {
     const { name, image } = wallet;
-    if (!name.trim() ||   !image) {
-      Alert.alert("User", "Please fill all the fields");
+    if (!name.trim() || !image) {
+      Alert.alert("Wallet", "Please fill all the fields");
       return;
     }
 
+    const data: WalletType = {
+      uid: user?.uid,
+      name,
+      image,
+    };
+
     setLoading(true);
-    const res = await updateUser(user?.uid as string, wallet);
+    const res = await createOrUpdateWallet(data);
     setLoading(false);
-    
+
     if (res.success) {
-      await updateUserData(user?.uid as string);
       router.back();
     } else {
-      Alert.alert("User", res.msg);
+      Alert.alert("Error", res.msg || "Something went wrong");
     }
   };
 
   return (
     <ModalWrapper>
       <View style={styles.container}>
-        {/* Custom Header */}
         <View style={styles.customHeader}>
           <BackButton />
-          <Typo style={styles.headerTitle}>
-            New Wallet
-          </Typo>
+          <Typo style={styles.headerTitle}>New Wallet</Typo>
           <View style={styles.placeholder} />
         </View>
-
-        {/* Form */}
         <ScrollView contentContainerStyle={styles.form}>
-          
           <View style={styles.inputContainer}>
             <Typo color={colors.neutral200}>Wallet Name</Typo>
-            <Input 
+            <Input
               placeholder="Salary"
               value={wallet.name}
-              onChangeText={(value) => setWallet({...wallet, name: value})}
+              onChangeText={(value) => setWallet({ ...wallet, name: value })}
             />
           </View>
-           <View style={styles.inputContainer}>
+          <View style={styles.inputContainer}>
             <Typo color={colors.neutral200}>Wallet Icon</Typo>
-           <ImageUpload file={wallet.image} 
-           onClear={()=>setWallet({...wallet,image: null})}
-           onSelect={file=>setWallet({...wallet,image: file})} placeholder="Upload Image"/>
+            <ImageUpload
+              file={wallet.image}
+              onClear={() => setWallet({ ...wallet, image: null })}
+              onSelect={(file) => setWallet({ ...wallet, image: file })}
+              placeholder="Upload Image"
+            />
           </View>
         </ScrollView>
       </View>
-
       <View style={styles.footer}>
         <Button onPress={onSubmit} loading={loading} style={{ flex: 1 }}>
-          <Typo color={colors.black} fontWeight={"700"}>
+          <Typo color={colors.black} fontWeight="700">
             Add Wallet
           </Typo>
         </Button>

@@ -9,6 +9,7 @@ export const uploadFileToCloudinary = async (
     folderName: string
 ): Promise<ResponseType> => {
     try {
+        if(!file) return {success: true, data :null}
         if (file && typeof file === 'object' && file.uri) {
             const formData = new FormData();
             formData.append("file", {
