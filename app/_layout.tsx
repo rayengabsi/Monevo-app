@@ -18,6 +18,15 @@ const StackLayout = () => {
           headerBackTitle: "Cancel"
         }} 
       />
+      <Stack.Screen 
+        name="(modals)/walletModal" 
+                     options={{ 
+          presentation: "modal",
+          headerShown: true,
+          headerTitle: "Edit Profile",
+          headerBackTitle: "Cancel"
+        }} 
+      />
     </Stack>
   );
 };
