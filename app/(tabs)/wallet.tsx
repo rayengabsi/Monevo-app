@@ -1,22 +1,40 @@
-import { StyleSheet, View, StatusBar, SafeAreaView, TouchableOpacity } from 'react-native'
+import { StyleSheet, View, StatusBar, SafeAreaView, TouchableOpacity, FlatList } from 'react-native'
 import React from 'react'
 import { colors, radius, spacingX, spacingY } from '@/constants/theme'
 import { verticalScale } from '@/utils/styling'
 import Typo from '@/components/typo'
 import * as Icon from 'phosphor-react-native'
 import { useRouter } from 'expo-router'
+import { useAuth } from '@/config/contexts/authContext'
+import useFetchData from '@/hooks/useFetchData'
+import { orderBy, where } from 'firebase/firestore'
+import Loading from '@/components/Loading'
+import WalletListItem from '@/components/WalletListItem'
 
 const Wallet = () => {
-  const router =useRouter();
+  const router = useRouter();
+
+  const { user } = useAuth();
+  const { data: wallets, error, loading } = useFetchData("wallets", [
+    where("uid", "==", user?.uid),
+    orderBy("created","desc"),
+  ]);
+
+  console.log("Wallet data:", wallets);
+  console.log("User UID:", user?.uid);
+
   const getTotalBalance = () => {
-    return 2344.00;
+    if (!wallets) return 0;
+    return wallets.reduce((total, item) => {
+      total = total + (item.amount || 0);
+      return total;
+    }, 0);
   }
   
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="black" />
       <View style={styles.container}>
-        {/* Balance view - Black background */}
         <View style={styles.balanceView}>
           <View style={{ alignItems: "center" }}>
             <Typo size={45} fontWeight="500">
@@ -28,12 +46,9 @@ const Wallet = () => {
           </View>
         </View>
         
-        {/* Add spacer view for the gap */}
         <View style={styles.spacer} />
         
-        {/* Wallets Card Container */}
         <View style={styles.walletsCard}>
-          {/* Header inside the card */}
           <View style={styles.header}>
             <Typo size={20} fontWeight="500">
               My Wallets
@@ -47,10 +62,12 @@ const Wallet = () => {
             </TouchableOpacity>
           </View>
           
-          {/* Wallets list inside the card */}
-          <View style={styles.walletsList}>
-            {/* Wallet items will go here */}
-          </View>
+          {loading && <Loading/>}
+          <FlatList
+            data={wallets}
+            renderItem={({ item, index }) => <WalletListItem item={item} index={index} router={router}/>}
+            contentContainerStyle={styles.listStyle}
+          />
         </View>
       </View>
     </SafeAreaView>
@@ -94,10 +111,13 @@ const styles = StyleSheet.create({
     paddingTop: spacingX._40,
   },
   addButton: {
-    padding: 4, // Add some touch area
+    padding: 4,
   },
   walletsList: {
     flex: 1,
+    paddingHorizontal: spacingX._20,
+  },
+  listStyle: {
     paddingHorizontal: spacingX._20,
   },
 });
