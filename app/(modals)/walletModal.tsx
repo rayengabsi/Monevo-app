@@ -149,7 +149,9 @@ export default WalletModal;
 
 const styles = StyleSheet.create({
   container: {
- 
+    flex: 1,
+    paddingHorizontal: spacingY._20,
+    paddingTop: spacingY._20,
   },
   customHeader: {
     flexDirection: "row",

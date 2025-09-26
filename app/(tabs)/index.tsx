@@ -10,17 +10,12 @@ import { StyleSheet, Text, View } from "react-native";
 
 const Home = () => {
   const { user } = useAuth();
- // console.log("Current user in Home:", user);
-//  const handleLogout = async () => {
- //   await signOut(auth);
-  //};
 
   return (
     <ScreenWrapper>
-      <Typo>Home</Typo>
-      {/* <Button onPress={handleLogout}>
-        <Typo color={colors.black}>Logout</Typo>
-      </Button> */}
+      <View style={styles.container}>
+        <View style={styles.header}></View>
+      </View>
     </ScreenWrapper>
   );
 };
@@ -28,6 +23,16 @@ const Home = () => {
 export default Home;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center" },
-  title: { fontSize: 24, marginBottom: 20 },
+  container: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center" 
+  },
+  title: { 
+    fontSize: 24, 
+    marginBottom: 20 
+  },
+  header: {
+    // you can add styles here later
+  },
 });
