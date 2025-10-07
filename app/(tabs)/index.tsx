@@ -1,29 +1,28 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React from "react";
 import Button from "@/components/Button";
-import Typo from "@/components/typo";
-import { colors, spacingX, spacingY } from "@/constants/theme";
-import { signOut } from "firebase/auth";
-import { auth } from "@/config/firebase";
-import { useAuth } from "@/config/contexts/authContext";
 import ScreenWrapper from "@/components/ScreenWrapper";
+import Typo from "@/components/typo";
+import { useAuth } from "@/config/contexts/authContext";
+import { colors, spacingY } from "@/constants/theme";
+import React from "react";
+import { StyleSheet, View, TouchableOpacity, ScrollView } from "react-native";
 import { verticalScale } from "@/utils/styling";
 import * as Icons from "phosphor-react-native";
-import { ScrollView } from "react-native";
 import HomeCard from "@/components/HomeCard";
+import TransactionList from "@/components/TransactionList";
+import { useRouter } from "expo-router";
+
 const Home = () => {
   const { user } = useAuth();
+  const router = useRouter();
+
   return (
     <ScreenWrapper>
       <View style={styles.container}>
         {/* header */}
-        <View>
-          <View style={styles.header}>
+        <View style={styles.header}>
           <View style={{ gap: 4 }}>
-
             <Typo size={16} color={colors.neutral400}>
               Hello,
-
             </Typo>
             <Typo>{user?.name}</Typo>
           </View>
@@ -34,55 +33,67 @@ const Home = () => {
               weight="bold"
             />
           </TouchableOpacity>
-          </View>
         </View>
 
         <ScrollView
-  contentContainerStyle={styles.scrollViewStyle}
-  showsVerticalScrollIndicator={false}
->
-  {/* card */}
-  <View>
-    <HomeCard />
-  </View>
-</ScrollView>
+          contentContainerStyle={styles.scrollViewStyle}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* card */}
+          <View>
+            <HomeCard />
+          </View>
+          
+          <TransactionList
+            data={[1, 2, 3, 4, 5, 6]}
+            loading={false}
+            emptyListMessage="No transactions added yet!"
+            title="Recent Transactions"
+          />
+        </ScrollView>
 
+        <Button
+          style={styles.floatingButton}
+          onPress={() => router.push("/(modals)/transactionModel")}
+        >
+          <Icons.Plus
+            color={colors.black}
+            weight="bold"
+            size={verticalScale(24)}
+          />
+        </Button>
       </View>
     </ScreenWrapper>
   );
 };
-
 
 export default Home;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: spacingX._20,
-    marginTop: verticalScale(8),
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacingY._10,
+    paddingVertical: spacingY._15,
   },
   searchIcon: {
-    backgroundColor: colors.neutral700,
-    padding: spacingX._10,
-    borderRadius: 50,
-  },
-  floatingButton: {
-    height: verticalScale(50),
-    width: verticalScale(50),
-    borderRadius: 100,
-    position: "absolute",
-    bottom: verticalScale(30),
-    right: verticalScale(30),
+    padding: 8,
   },
   scrollViewStyle: {
-    marginTop: spacingY._10,
     paddingBottom: verticalScale(100),
-    gap: spacingY._25,
+    gap: spacingY._20,
+  },
+  floatingButton: {
+    position: "absolute",
+    bottom: verticalScale(30),
+    right: 20,
+    width: verticalScale(60),
+    height: verticalScale(60),
+    borderRadius: verticalScale(30),
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
