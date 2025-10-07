@@ -27,6 +27,15 @@ const StackLayout = () => {
           headerBackTitle: "Cancel"
         }} 
       />
+       <Stack.Screen 
+        name="(modals)/transactionModel" 
+                     options={{ 
+          presentation: "modal",
+          headerShown: true,
+          headerTitle: "Edit Profile",
+          headerBackTitle: "Cancel"
+        }} 
+      />
     </Stack>
   );
 };
