@@ -43,18 +43,18 @@ const TransactionList = ({
       ) : (
         <View style={{ flex: 1, minHeight: 2 }}>
           <FlashList
-            data={data}
-            keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-            renderItem={({ item, index }) => (
-              <TransactionItem
-                item={item}
-                index={index}
-                handleClick={handleClick}
-              />
-            )}
-            estimatedItemSize={60}
-            showsVerticalScrollIndicator={false}
-          />
+  data={data}
+  keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+  renderItem={({ item, index }) => (
+    <TransactionItem
+      item={item}
+      index={index}
+      handleClick={handleClick}
+    />
+  )}
+  getItemType={() => "transaction"}
+  showsVerticalScrollIndicator={false}
+/>
         </View>
       )}
     </View>
