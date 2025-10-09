@@ -9,8 +9,9 @@ import {
   TouchableOpacity,
   View,
   Modal,
+  Pressable,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Dropdown } from "react-native-element-dropdown";
 
 import BackButton from "@/components/BackButton";
@@ -22,46 +23,92 @@ import Typo from "@/components/typo";
 import { colors, radius, spacingX, spacingY } from "@/constants/theme";
 import { scale, verticalScale } from "@/utils/styling";
 import * as Icons from "phosphor-react-native";
+import { useAuth } from "@/config/contexts/authContext";
+import { TransactionType, WalletType } from "@/types";
+import { expenseCategories, transactionTypes } from "@/constants/data";
+import { orderBy, where } from "firebase/firestore";
+import useFetchData from "@/hooks/useFetchData";
+import { useRouter } from "expo-router";
 
-const TransactionModal = () => {
-  const [transaction, setTransaction] = useState({
-    category: "",
-    date: new Date(),
-    amount: "",
-    description: "",
-    image: null,
-  });
+interface TransactionModalProps {
+  oldTransaction?: TransactionType;
+}
 
+const TransactionModal = ({ oldTransaction }: TransactionModalProps) => {
+  const { user } = useAuth();
+  const [transaction, setTransaction] = useState<TransactionType>(
+    oldTransaction || {
+      type: "expense",
+      category: "",
+      date: new Date(),
+      amount: 0,
+      description: "",
+      walletId: "",
+      image: null,
+    }
+  );
+
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [isFocus, setIsFocus] = useState(false);
+  
+  const {
+    data: wallets,
+    error: walletError,
+    loading: walletLoading,
+  } = useFetchData("wallets", [
+    where("uid", "==", user?.uid),
+    orderBy("created", "desc"),
+  ]);
 
-  // fake categories
-  const categories = [
-    { label: "Food", value: "food" },
-    { label: "Transport", value: "transport" },
-    { label: "Shopping", value: "shopping" },
-    { label: "Health", value: "health" },
-  ];
-
-  const onSubmit = () => {
-    if (!transaction.amount || Number(transaction.amount) <= 0) {
-      Alert.alert("Error", "Please enter a valid amount");
-      return;
-    }
-    if (!transaction.category) {
-      Alert.alert("Error", "Please select a category");
-      return;
-    }
-    Alert.alert("Success", "Transaction saved successfully 🎉");
+  const onDateChange = (event: any, selectedDate: any) => {
+    const currentDate = selectedDate || transaction.date;
+    setTransaction({ ...transaction, date: currentDate });
+    setShowDatePicker(Platform.OS === "ios" ? true : false);
   };
 
-  const handleDateChange = (_: any, selectedDate?: Date) => {
-    if (Platform.OS === "android") {
-      setShowDatePicker(false);
+  const showDeleteAlert = () => {
+    Alert.alert(
+      "Delete Transaction",
+      "Are you sure you want to delete this transaction?",
+      [
+        { text: "Cancel", onPress: () => {}, style: "cancel" },
+        {
+          text: "Delete",
+          onPress: async () => {
+            // Add delete logic here
+          },
+          style: "destructive",
+        },
+      ]
+    );
+  };
+
+  const onSubmit = async () => {
+    const { type, amount, description, category, date, walletId, image } =
+      transaction;
+    if (
+      !walletId ||
+      !date ||
+      !amount ||
+      (type === "expense" && !category)
+    ) {
+      Alert.alert("Transaction", "Please fill all the fields");
+      return;
     }
-    if (selectedDate) {
-      setTransaction({ ...transaction, date: selectedDate });
-    }
+    console.log("good to go");
+    let transactionData: TransactionType = {
+      type,
+      amount,
+      description,
+      category,
+      date,
+      walletId,
+      image,
+      uid: user?.uid,
+    };
+    console.log("Transaction data:", transactionData);
+    // Add submission logic here
   };
 
   return (
@@ -85,82 +132,177 @@ const TransactionModal = () => {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {/* Expense Category */}
+            {/* transaction types */}
             <View style={styles.inputContainer}>
-              <Typo color={colors.neutral200}>Expense Category</Typo>
+              <Typo color={colors.neutral200} size={16}>
+                Type
+              </Typo>
               <Dropdown
-                style={styles.input}
-                placeholderStyle={styles.placeholderStyle}
-                selectedTextStyle={styles.selectedTextStyle}
-                inputSearchStyle={styles.inputSearchStyle}
-                iconStyle={styles.iconStyle}
-                data={categories}
+                style={styles.dropdownContainer}
+                activeColor={colors.neutral700}
+                selectedTextStyle={styles.dropdownSelectedText}
+                iconStyle={styles.dropdownIcon}
+                data={transactionTypes}
                 maxHeight={300}
                 labelField="label"
                 valueField="value"
-                placeholder="Select category"
-                value={transaction.category}
-                onFocus={() => setIsFocus(true)}
-                onBlur={() => setIsFocus(false)}
+                itemTextStyle={styles.dropdownItemText}
+                itemContainerStyle={styles.dropdownItemContainer}
+                containerStyle={styles.dropdownListContainer}
+                value={transaction.type}
                 onChange={(item) => {
-                  setTransaction({ ...transaction, category: item.value });
-                  setIsFocus(false);
+                  setTransaction({ ...transaction, type: item.value });
                 }}
-                containerStyle={styles.dropdownContainer}
-                itemTextStyle={styles.itemTextStyle}
-                renderRightIcon={() => (
-                  <Icons.CaretDown
-                    size={20}
-                    color={colors.neutral400}
-                    weight="bold"
-                  />
-                )}
               />
             </View>
 
+            {/* wallet */}
+            <View style={styles.inputContainer}>
+              <Typo color={colors.neutral200} size={16}>
+                Wallet
+              </Typo>
+              <Dropdown
+                style={styles.dropdownContainer}
+                activeColor={colors.neutral700}
+                placeholderStyle={styles.dropdownPlaceholder}
+                selectedTextStyle={styles.dropdownSelectedText}
+                iconStyle={styles.dropdownIcon}
+                data={wallets.map((wallet) => ({
+                  label: `${wallet?.name} ($${wallet.amount})`,
+                  value: wallet?.id,
+                }))}
+                maxHeight={300}
+                labelField="label"
+                valueField="value"
+                itemTextStyle={styles.dropdownItemText}
+                itemContainerStyle={styles.dropdownItemContainer}
+                containerStyle={styles.dropdownListContainer}
+                placeholder="Select wallet"
+                value={transaction.walletId}
+                onChange={(item) => {
+                  setTransaction({
+                    ...transaction,
+                    walletId: item.value || "",
+                  });
+                }}
+              />
+            </View>
+
+            {/* Expense Category */}
+            {transaction.type === "expense" && (
+              <View style={styles.inputContainer}>
+                <Typo color={colors.neutral200} size={16}>
+                  Expense Category
+                </Typo>
+                <Dropdown
+                style={styles.dropdownContainer}
+             
+                  activeColor={colors.neutral700}
+                  placeholderStyle={styles.dropdownPlaceholder}
+                  selectedTextStyle={styles.dropdownSelectedText}
+                  iconStyle={styles.dropdownIcon}
+                  data={Object.values(expenseCategories)}
+                  maxHeight={300}
+                  labelField="label"
+                  valueField="value"
+                  itemTextStyle={styles.dropdownItemText}
+                  itemContainerStyle={styles.dropdownItemContainer}
+                  containerStyle={styles.dropdownListContainer}
+                  placeholder="Select category"
+                  value={transaction.category}
+                  onChange={(item) => {
+                    setTransaction({
+                      ...transaction,
+                      category: item.value || "",
+                    });
+                  }}
+                />
+              </View>
+            )}
+
             {/* Date */}
             <View style={styles.inputContainer}>
-              <Typo color={colors.neutral200}>Date</Typo>
-              <TouchableOpacity
-                style={styles.input}
+              <Typo color={colors.neutral200} size={16}>
+                Date
+              </Typo>
+              <Pressable
+                style={styles.dateInput}
                 onPress={() => setShowDatePicker(true)}
               >
-                <Typo color={colors.white} size={14}>
-                  {transaction.date.toLocaleDateString("en-US", {
-                    month: "2-digit",
-                    day: "2-digit",
-                    year: "numeric",
-                  })}
+                <Typo size={14}>
+                  {(transaction.date as Date).toLocaleDateString()}
                 </Typo>
                 <Icons.CalendarBlank
                   size={20}
                   color={colors.neutral400}
                   weight="bold"
                 />
-              </TouchableOpacity>
+              </Pressable>
+              {/* Date Picker Modal for iOS */}
+              {showDatePicker && (
+                <View style={Platform.OS === "ios" && styles.iosDatePicker}>
+                  <DateTimePicker
+                    value={transaction.date as Date}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={onDateChange}
+                    textColor={colors.white}
+                
+                    style={styles.datePicker}
+                  />
+
+                  {Platform.OS === "ios" && (
+                    <TouchableOpacity
+                      style={styles.datePickerButtom}
+                      onPress={() => setShowDatePicker(false)}
+                    >
+                      <Typo size={15} fontWeight="500">
+                        Ok
+                      </Typo>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
             </View>
 
             {/* Amount */}
             <View style={styles.inputContainer}>
-              <Typo color={colors.neutral200}>Amount</Typo>
+              <Typo color={colors.neutral200} size={16}>
+                Amount
+              </Typo>
               <Input
-                placeholder="0.00"
-                value={transaction.amount}
-                onChangeText={(value) =>
-                  setTransaction({ ...transaction, amount: value })
-                }
                 keyboardType="numeric"
+                value={transaction.amount?.toString()}
+                onChangeText={(value) =>
+                  setTransaction({
+                    ...transaction,
+                    amount: Number(value.replace(/[^0-9]/g, "")),
+                  })
+                }
               />
             </View>
 
             {/* Description */}
             <View style={styles.inputContainer}>
-              <Typo color={colors.neutral200}>
-                Description <Typo color={colors.neutral400}>(optional)</Typo>
-              </Typo>
+              <View style={styles.flexRow}>
+                <Typo color={colors.neutral200} size={16}>
+                  Description
+                </Typo>
+                <Typo color={colors.neutral500} size={14}>
+                  (optional)
+                </Typo>
+              </View>
+
               <Input
                 placeholder="Enter description"
                 value={transaction.description}
+                multiline
+                containerStyle={{
+                  flexDirection: "row",
+                  height: verticalScale(100),
+                  alignItems: "flex-start",
+                  paddingVertical: 15,
+                }}
                 onChangeText={(value) =>
                   setTransaction({ ...transaction, description: value })
                 }
@@ -169,7 +311,15 @@ const TransactionModal = () => {
 
             {/* Upload Image */}
             <View style={styles.inputContainer}>
-              <Typo color={colors.neutral200}>Receipt Image (Optional)</Typo>
+              <View style={styles.flexRow}>
+                <Typo color={colors.neutral200} size={16}>
+                  Receipt
+                </Typo>
+                <Typo color={colors.neutral500} size={14}>
+                  (optional)
+                </Typo>
+              </View>
+
               <ImageUpload
                 file={transaction.image}
                 onClear={() =>
@@ -186,53 +336,27 @@ const TransactionModal = () => {
 
         {/* Footer pinned at bottom */}
         <View style={styles.footer}>
-          <Button onPress={onSubmit} style={{ flex: 1 }}>
+          {oldTransaction?.id && !loading && (
+            <Button
+              onPress={showDeleteAlert}
+              style={{
+                backgroundColor: colors.rose,
+                paddingHorizontal: spacingX._15,
+              }}
+            >
+              <Icons.Trash
+                color={colors.white}
+                size={verticalScale(24)}
+                weight="bold"
+              />
+            </Button>
+          )}
+          <Button onPress={onSubmit} loading={loading} style={{ flex: 1 }}>
             <Typo color={colors.black} fontWeight="700">
-              Add Transaction
+              {oldTransaction?.id ? "Update" : "Submit"}
             </Typo>
           </Button>
         </View>
-
-        {/* Date Picker Modal for iOS */}
-        {Platform.OS === "ios" && showDatePicker && (
-          <Modal
-            transparent
-            animationType="slide"
-            visible={showDatePicker}
-            onRequestClose={() => setShowDatePicker(false)}
-          >
-            <View style={styles.datePickerModalOverlay}>
-              <View style={styles.datePickerModalContent}>
-                <View style={styles.datePickerHeader}>
-                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                    <Typo color={colors.primary} size={16} fontWeight="600">
-                      Done
-                    </Typo>
-                  </TouchableOpacity>
-                </View>
-                <DateTimePicker
-                  value={transaction.date}
-                  mode="date"
-                  display="spinner"
-                  onChange={handleDateChange}
-                  textColor={colors.white}
-                  themeVariant="dark"
-                  style={styles.datePicker}
-                />
-              </View>
-            </View>
-          </Modal>
-        )}
-
-        {/* Date Picker for Android */}
-        {Platform.OS === "android" && showDatePicker && (
-          <DateTimePicker
-            value={transaction.date}
-            mode="date"
-            display="default"
-            onChange={handleDateChange}
-          />
-        )}
       </KeyboardAvoidingView>
     </ModalWrapper>
   );
@@ -265,7 +389,8 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: spacingY._20,
-    paddingBottom: spacingY._20,
+    paddingBottom: spacingY._40,
+    paddingVertical: spacingX._15,
   },
   footer: {
     alignItems: "center",
@@ -276,10 +401,28 @@ const styles = StyleSheet.create({
     paddingVertical: spacingY._15,
     borderTopColor: colors.neutral700,
     borderTopWidth: 1,
-    backgroundColor: colors.black,
+    marginBottom: spacingY._5,
+  },
+  dropdownPlaceholder: {
+    color: colors.white,
   },
   inputContainer: {
     gap: spacingY._10,
+  },
+  dropdownListContainer: {
+    backgroundColor: colors.neutral900,
+    paddingVertical: spacingY._7,
+    top: 5,
+    paddingHorizontal: spacingX._15,
+    borderRadius: radius._15,
+    borderColor: colors.neutral500,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 5 },
+    borderWidth: 1,
+    borderCurve: "continuous",
+    shadowOpacity: 1,
+    shadowRadius: 15,
+    elevation: 5,
   },
   input: {
     flexDirection: "row",
@@ -287,24 +430,22 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     height: verticalScale(54),
     borderWidth: 1,
-    borderColor: colors.neutral700,
-    borderRadius: radius._12,
+    borderColor: colors.neutral300,
+    borderRadius: radius._17,
     paddingHorizontal: spacingX._15,
-    backgroundColor: colors.neutral900,
+    borderCurve: "continuous",
   },
   dropdownContainer: {
-    backgroundColor: colors.neutral800,
-    borderRadius: radius._12,
-    borderColor: colors.neutral700,
+    height: verticalScale(54),
+    paddingHorizontal: spacingX._15,
+    borderRadius: radius._15,
+    borderColor: colors.neutral300,
     borderWidth: 1,
+    borderCurve: "continuous",
   },
-  placeholderStyle: {
-    color: colors.neutral400,
-    fontSize: scale(14),
-  },
-  selectedTextStyle: {
+  dropdownSelectedText: {
     color: colors.white,
-    fontSize: scale(14),
+    fontSize: verticalScale(14),
   },
   inputSearchStyle: {
     height: 40,
@@ -319,28 +460,51 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: scale(14),
   },
-  // iOS Date Picker Modal Styles
-  datePickerModalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
+  iosDatePicker: {},
+
   datePickerModalContent: {
     backgroundColor: colors.neutral900,
     borderTopLeftRadius: radius._20,
     borderTopRightRadius: radius._20,
     paddingBottom: spacingY._30,
   },
-  datePickerHeader: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    paddingHorizontal: spacingX._20,
-    paddingVertical: spacingY._15,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral700,
-  },
+ 
   datePicker: {
-    backgroundColor: colors.neutral900,
+    backgroundColor: colors.neutral800,
     height: verticalScale(220),
+  },
+  dropdownItemText: {
+    color: colors.white,
+  },
+  dropdownIcon: {
+    height: verticalScale(30),
+    tintColor: colors.neutral300,
+  },
+  dropdownItemContainer: {
+    borderRadius: radius._15,
+    marginHorizontal: spacingX._7,
+  },
+  datePickerButtom: {
+    backgroundColor: colors.neutral700,
+    alignSelf: "flex-end",
+    padding: spacingY._7,
+    marginRight: spacingX._7,
+    paddingHorizontal: spacingY._15,
+    borderRadius: radius._10,
+  },
+  dateInput: {
+    flexDirection: "row",
+    height: verticalScale(54),
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.neutral300,
+    borderRadius: radius._17,
+    borderCurve: "continuous",
+    paddingHorizontal: spacingX._15,
+  },
+  flexRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacingX._5,
   },
 });
