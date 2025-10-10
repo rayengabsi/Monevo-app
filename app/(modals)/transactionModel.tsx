@@ -29,6 +29,7 @@ import { expenseCategories, transactionTypes } from "@/constants/data";
 import { orderBy, where } from "firebase/firestore";
 import useFetchData from "@/hooks/useFetchData";
 import { useRouter } from "expo-router";
+import { createOrUpdateTransaction } from "@/services/transactionService";
 
 interface TransactionModalProps {
   oldTransaction?: TransactionType;
@@ -109,6 +110,15 @@ const TransactionModal = ({ oldTransaction }: TransactionModalProps) => {
     };
     console.log("Transaction data:", transactionData);
     // Add submission logic here
+    setLoading(true);
+    const res = await createOrUpdateTransaction(transactionData);
+
+    setLoading(false);
+    if(res.success){
+      router.back();
+    }else{
+      Alert.alert("Transaction", res.msg);
+    }
   };
 
   return (
