@@ -97,7 +97,7 @@ const TransactionModal = ({ oldTransaction }: TransactionModalProps) => {
       Alert.alert("Transaction", "Please fill all the fields");
       return;
     }
-    console.log("good to go");
+   
     let transactionData: TransactionType = {
       type,
       amount,
@@ -108,7 +108,7 @@ const TransactionModal = ({ oldTransaction }: TransactionModalProps) => {
       image,
       uid: user?.uid,
     };
-    console.log("Transaction data:", transactionData);
+   
     // Add submission logic here
     setLoading(true);
     const res = await createOrUpdateTransaction(transactionData);

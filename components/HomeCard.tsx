@@ -5,8 +5,34 @@ import { scale, verticalScale } from '@/utils/styling';
 import * as Icons from "phosphor-react-native";
 import { ImageBackground } from 'expo-image';
 import Typo from "./typo"
+import { useAuth } from '@/config/contexts/authContext';
+import useFetchData from '@/hooks/useFetchData';
+import { WalletType } from '@/types';
+import { orderBy, where } from 'firebase/firestore';
 
 const HomeCard = () => {
+  const {user} = useAuth();
+
+const { data: wallets, error, loading: walletLoading } = useFetchData(
+  "wallets",
+  [
+    where("uid", "==", user?.uid),
+    orderBy("created", "desc"),
+  ]
+) as { data: WalletType[]; error: any; loading: boolean };
+
+
+  const getTotals = () =>{
+  return wallets.reduce((totals: any, item: WalletType) => {
+    totals.balance = totals.balance + Number(item.amount);
+    totals.income = totals.income + Number(item.totalIncome);
+    totals.expenses = totals.expenses + Number(item.totalExpenses);
+    return totals;
+  }, { balance: 0, income: 0, expenses: 0 });
+}
+
+
+
   return (
     <View style={styles.cardWrapper}>
       <ImageBackground
@@ -24,7 +50,7 @@ const HomeCard = () => {
               <Icons.DotsThreeOutline size={20} color={colors.black} weight='fill' />
             </View>
             <Typo color={colors.black} size={28} fontWeight={"bold"}>
-              $2343.23
+              $ {walletLoading ? "----" : getTotals()?.balance?.toFixed(2)}
             </Typo>
           </View>
 
@@ -42,7 +68,7 @@ const HomeCard = () => {
               </View>
               <View style={styles.valueWrapper}>
                 <Typo size={15} color={colors.green} fontWeight={"600"}>
-                  $ 2342
+                   $ {walletLoading ? "----" : getTotals()?.income?.toFixed(2)}
                 </Typo>
               </View>
             </View>
@@ -59,7 +85,7 @@ const HomeCard = () => {
               </View>
               <View style={styles.valueWrapper}>
                 <Typo size={15} color={colors.rose} fontWeight={"600"}>
-                  $ 23424
+                   $ {walletLoading ? "----" : getTotals()?.expenses?.toFixed(2)}
                 </Typo>
               </View>
             </View>
@@ -89,6 +115,7 @@ const styles = StyleSheet.create({
     padding: scale(20),
     flex: 1,
     justifyContent: "space-between",
+    
   },
   totalBalanceRow: {
     flexDirection: "row",
