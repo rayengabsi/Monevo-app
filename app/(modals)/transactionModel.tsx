@@ -29,7 +29,7 @@ import { expenseCategories, transactionTypes } from "@/constants/data";
 import { orderBy, where, Timestamp } from "firebase/firestore";
 import useFetchData from "@/hooks/useFetchData";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { createOrUpdateTransaction } from "@/services/transactionService";
+import { createOrUpdateTransaction, deleteTransaction } from "@/services/transactionService";
 
 const TransactionModal = () => {
   const { user } = useAuth();
@@ -95,12 +95,30 @@ const TransactionModal = () => {
     setTransaction({ ...transaction, date: currentDate });
     setShowDatePicker(Platform.OS === "ios" ? true : false);
   };
-
+const onDelete = async () => {
+  if (!transaction?.id) return;
+  setLoading(true);
+  const res = await deleteTransaction(transaction.id, transaction.walletId);
+  setLoading(false);
+  if (res.success) {
+    router.back();
+  } else {
+    Alert.alert("Transaction", res.msg);
+  }
+};
   const showDeleteAlert = () => {
     Alert.alert(
-      "Coming Soon",
-      "Delete functionality will be available soon",
-      [{ text: "OK" }]
+      "Confirm",
+      "Are you sure you want to delete this transaction?",
+      [{ text: "Cancel",
+        onPress:()=> console.log("cancel delete"),
+        style:"cancel"},
+        {
+          text: "Delete",
+          onPress:()=> onDelete(),
+          style:"destructive",
+        },
+        ]
     );
   };
 

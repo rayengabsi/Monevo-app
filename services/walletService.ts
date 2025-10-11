@@ -1,7 +1,7 @@
 import { ResponseType, WalletType } from "@/types";
 import { uploadFileToCloudinary } from "./imageService";
 import { firestore } from "@/config/firebase";
-import { doc, setDoc, collection, addDoc, deleteDoc } from "firebase/firestore";
+import { doc, setDoc, collection, addDoc, deleteDoc, where, getDocs, query, writeBatch } from "firebase/firestore";
 
 export const createOrUpdateWallet = async (
   walletData: Partial<WalletType>
@@ -46,10 +46,38 @@ export const deleteWallet = async (walletId: string): Promise<ResponseType> => {
   try {
     const walletRef = doc(firestore, "wallets", walletId);
     await deleteDoc(walletRef);
-    // todo: delete all transactions related to this wallet
+  
+   deleteTransactionsByWalletId(walletId);
+
+
     return { success: true, msg: "Wallet deleted successfully" };
   } catch (err: any) {
     console.log("error deleting wallet:", err);
     return { success: false, msg: err.message };
   }
 };
+
+export const deleteTransactionsByWalletId = async (walletId: string): Promise<ResponseType> => {
+  try {
+    let hasMoreTransactions = true;
+    while (hasMoreTransactions) {
+      const transactionsQuery = query(collection(firestore, "transactions"), where("walletId", "==", walletId));
+      const transactionsSnapshot = await getDocs(transactionsQuery);
+      if (transactionsSnapshot.size == 0) {
+        hasMoreTransactions = false;
+        break;
+      }
+      const batch = writeBatch(firestore);
+      transactionsSnapshot.forEach((transactionDoc) => {
+        batch.delete(transactionDoc.ref);
+      });
+      await batch.commit();
+      console.log(`${transactionsSnapshot.size} transactions deleted in this batch`);
+    }
+    return { success: true, msg: "Wallet deleted successfully" };
+  } catch (err: any) {
+    console.log("error deleting wallet:", err);
+    return { success: false, msg: err.message };
+  }
+};
+
