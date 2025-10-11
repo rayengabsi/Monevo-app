@@ -1,5 +1,6 @@
+
 // modals/TransactionModal.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -8,10 +9,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  Modal,
   Pressable,
 } from "react-native";
-import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { Dropdown } from "react-native-element-dropdown";
 
 import BackButton from "@/components/BackButton";
@@ -24,33 +24,29 @@ import { colors, radius, spacingX, spacingY } from "@/constants/theme";
 import { scale, verticalScale } from "@/utils/styling";
 import * as Icons from "phosphor-react-native";
 import { useAuth } from "@/config/contexts/authContext";
-import { TransactionType, WalletType } from "@/types";
+import { TransactionType } from "@/types";
 import { expenseCategories, transactionTypes } from "@/constants/data";
-import { orderBy, where } from "firebase/firestore";
+import { orderBy, where, Timestamp } from "firebase/firestore";
 import useFetchData from "@/hooks/useFetchData";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { createOrUpdateTransaction } from "@/services/transactionService";
 
-interface TransactionModalProps {
-  oldTransaction?: TransactionType;
-}
-
-const TransactionModal = ({ oldTransaction }: TransactionModalProps) => {
+const TransactionModal = () => {
   const { user } = useAuth();
-  const [transaction, setTransaction] = useState<TransactionType>(
-    oldTransaction || {
-      type: "expense",
-      category: "",
-      date: new Date(),
-      amount: 0,
-      description: "",
-      walletId: "",
-      image: null,
-    }
-  );
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  
+  const [transaction, setTransaction] = useState<TransactionType>({
+    type: "expense",
+    category: "",
+    date: new Date(),
+    amount: 0,
+    description: "",
+    walletId: "",
+    image: null,
+  });
 
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const [showDatePicker, setShowDatePicker] = useState(false);
   
   const {
@@ -62,6 +58,38 @@ const TransactionModal = ({ oldTransaction }: TransactionModalProps) => {
     orderBy("created", "desc"),
   ]);
 
+  // Load existing transaction data if editing
+  useEffect(() => {
+    if (params?.id) {
+      let date: Date;
+      
+      // Handle different date formats
+      if (params.date) {
+        if (typeof params.date === 'string') {
+          date = new Date(params.date);
+        } else if ((params.date as any)?.toDate) {
+          // It's a Firestore Timestamp
+          date = (params.date as any).toDate();
+        } else {
+          date = new Date();
+        }
+      } else {
+        date = new Date();
+      }
+
+      setTransaction({
+        id: params.id as string,
+        type: params.type as string,
+        amount: Number(params.amount),
+        description: params.description as string || "",
+        category: params.category as string || "",
+        date: date,
+        walletId: params.walletId as string,
+        image: params.image || null,
+      });
+    }
+  }, [params.id]); // Only depend on params.id to prevent infinite loop
+
   const onDateChange = (event: any, selectedDate: any) => {
     const currentDate = selectedDate || transaction.date;
     setTransaction({ ...transaction, date: currentDate });
@@ -70,53 +98,48 @@ const TransactionModal = ({ oldTransaction }: TransactionModalProps) => {
 
   const showDeleteAlert = () => {
     Alert.alert(
-      "Delete Transaction",
-      "Are you sure you want to delete this transaction?",
-      [
-        { text: "Cancel", onPress: () => {}, style: "cancel" },
-        {
-          text: "Delete",
-          onPress: async () => {
-            // Add delete logic here
-          },
-          style: "destructive",
-        },
-      ]
+      "Coming Soon",
+      "Delete functionality will be available soon",
+      [{ text: "OK" }]
     );
   };
 
   const onSubmit = async () => {
-    const { type, amount, description, category, date, walletId, image } =
-      transaction;
-    if (
-      !walletId ||
-      !date ||
-      !amount ||
-      (type === "expense" && !category)
-    ) {
+    const { type, amount, description, category, date, walletId, image, id } = transaction;
+    
+    if (!walletId || !date || !amount || (type === "expense" && !category)) {
       Alert.alert("Transaction", "Please fill all the fields");
       return;
     }
    
+
+    const transactionData: TransactionType = {
+      ...(id && { id }), // Conditionally include id if it exists
+
     let transactionData: TransactionType = {
+
       type,
       amount,
       description,
       category,
       date,
       walletId,
-      image,
+      image: image? image :null,
       uid: user?.uid,
     };
+
+    
+
    
     // Add submission logic here
+
     setLoading(true);
     const res = await createOrUpdateTransaction(transactionData);
-
     setLoading(false);
-    if(res.success){
+    
+    if (res.success) {
       router.back();
-    }else{
+    } else {
       Alert.alert("Transaction", res.msg);
     }
   };
@@ -132,7 +155,9 @@ const TransactionModal = ({ oldTransaction }: TransactionModalProps) => {
           {/* Header */}
           <View style={styles.customHeader}>
             <BackButton />
-            <Typo style={styles.headerTitle}>New Transaction</Typo>
+            <Typo style={styles.headerTitle}>
+              {transaction.id ? "Edit Transaction" : "New Transaction"}
+            </Typo>
             <View style={styles.placeholder} />
           </View>
 
@@ -205,8 +230,7 @@ const TransactionModal = ({ oldTransaction }: TransactionModalProps) => {
                   Expense Category
                 </Typo>
                 <Dropdown
-                style={styles.dropdownContainer}
-             
+                  style={styles.dropdownContainer}
                   activeColor={colors.neutral700}
                   placeholderStyle={styles.dropdownPlaceholder}
                   selectedTextStyle={styles.dropdownSelectedText}
@@ -248,7 +272,6 @@ const TransactionModal = ({ oldTransaction }: TransactionModalProps) => {
                   weight="bold"
                 />
               </Pressable>
-              {/* Date Picker Modal for iOS */}
               {showDatePicker && (
                 <View style={Platform.OS === "ios" && styles.iosDatePicker}>
                   <DateTimePicker
@@ -257,13 +280,12 @@ const TransactionModal = ({ oldTransaction }: TransactionModalProps) => {
                     display={Platform.OS === "ios" ? "spinner" : "default"}
                     onChange={onDateChange}
                     textColor={colors.white}
-                
                     style={styles.datePicker}
                   />
 
                   {Platform.OS === "ios" && (
                     <TouchableOpacity
-                      style={styles.datePickerButtom}
+                      style={styles.datePickerButton}
                       onPress={() => setShowDatePicker(false)}
                     >
                       <Typo size={15} fontWeight="500">
@@ -346,7 +368,7 @@ const TransactionModal = ({ oldTransaction }: TransactionModalProps) => {
 
         {/* Footer pinned at bottom */}
         <View style={styles.footer}>
-          {oldTransaction?.id && !loading && (
+          {transaction.id && !loading && (
             <Button
               onPress={showDeleteAlert}
               style={{
@@ -363,7 +385,7 @@ const TransactionModal = ({ oldTransaction }: TransactionModalProps) => {
           )}
           <Button onPress={onSubmit} loading={loading} style={{ flex: 1 }}>
             <Typo color={colors.black} fontWeight="700">
-              {oldTransaction?.id ? "Update" : "Submit"}
+              {transaction.id ? "Update" : "Submit"}
             </Typo>
           </Button>
         </View>
@@ -434,17 +456,6 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 5,
   },
-  input: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: verticalScale(54),
-    borderWidth: 1,
-    borderColor: colors.neutral300,
-    borderRadius: radius._17,
-    paddingHorizontal: spacingX._15,
-    borderCurve: "continuous",
-  },
   dropdownContainer: {
     height: verticalScale(54),
     paddingHorizontal: spacingX._15,
@@ -457,32 +468,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: verticalScale(14),
   },
-  inputSearchStyle: {
-    height: 40,
-    fontSize: scale(14),
-    color: colors.white,
-  },
-  iconStyle: {
-    width: 20,
-    height: 20,
-  },
-  itemTextStyle: {
-    color: colors.white,
-    fontSize: scale(14),
-  },
-  iosDatePicker: {},
-
-  datePickerModalContent: {
-    backgroundColor: colors.neutral900,
-    borderTopLeftRadius: radius._20,
-    borderTopRightRadius: radius._20,
-    paddingBottom: spacingY._30,
-  },
- 
-  datePicker: {
-    backgroundColor: colors.neutral800,
-    height: verticalScale(220),
-  },
   dropdownItemText: {
     color: colors.white,
   },
@@ -494,7 +479,12 @@ const styles = StyleSheet.create({
     borderRadius: radius._15,
     marginHorizontal: spacingX._7,
   },
-  datePickerButtom: {
+  iosDatePicker: {},
+  datePicker: {
+    backgroundColor: colors.neutral800,
+    height: verticalScale(220),
+  },
+  datePickerButton: {
     backgroundColor: colors.neutral700,
     alignSelf: "flex-end",
     padding: spacingY._7,
@@ -506,6 +496,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     height: verticalScale(54),
     alignItems: "center",
+    justifyContent: "space-between",
     borderWidth: 1,
     borderColor: colors.neutral300,
     borderRadius: radius._17,
