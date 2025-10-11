@@ -112,8 +112,12 @@ const TransactionModal = () => {
       return;
     }
    
+
     const transactionData: TransactionType = {
       ...(id && { id }), // Conditionally include id if it exists
+
+    let transactionData: TransactionType = {
+
       type,
       amount,
       description,
@@ -123,7 +127,12 @@ const TransactionModal = () => {
       image: image? image :null,
       uid: user?.uid,
     };
+
     
+
+   
+    // Add submission logic here
+
     setLoading(true);
     const res = await createOrUpdateTransaction(transactionData);
     setLoading(false);
