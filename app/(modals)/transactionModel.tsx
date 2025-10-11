@@ -122,45 +122,36 @@ const onDelete = async () => {
     );
   };
 
-  const onSubmit = async () => {
-    const { type, amount, description, category, date, walletId, image, id } = transaction;
-    
-    if (!walletId || !date || !amount || (type === "expense" && !category)) {
-      Alert.alert("Transaction", "Please fill all the fields");
-      return;
-    }
-   
+ const onSubmit = async () => {
+  const { type, amount, description, category, date, walletId, image, id } = transaction;
+  
+  if (!walletId || !date || !amount || (type === "expense" && !category)) {
+    Alert.alert("Transaction", "Please fill all the fields");
+    return;
+  }
 
-    const transactionData: TransactionType = {
-      ...(id && { id }), // Conditionally include id if it exists
-
-    let transactionData: TransactionType = {
-
-      type,
-      amount,
-      description,
-      category,
-      date,
-      walletId,
-      image: image? image :null,
-      uid: user?.uid,
-    };
-
-    
-
-   
-    // Add submission logic here
-
-    setLoading(true);
-    const res = await createOrUpdateTransaction(transactionData);
-    setLoading(false);
-    
-    if (res.success) {
-      router.back();
-    } else {
-      Alert.alert("Transaction", res.msg);
-    }
+  const transactionData: TransactionType = {
+    ...(id && { id }), // Conditionally include id if it exists
+    type,
+    amount,
+    description,
+    category,
+    date,
+    walletId,
+    image: image? image :null,
+    uid: user?.uid,
   };
+
+  setLoading(true);
+  const res = await createOrUpdateTransaction(transactionData);
+  setLoading(false);
+  
+  if (res.success) {
+    router.back();
+  } else {
+    Alert.alert("Transaction", res.msg);
+  }
+};
 
   return (
     <ModalWrapper>
