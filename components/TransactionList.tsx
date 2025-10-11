@@ -6,8 +6,9 @@ import { verticalScale } from "@/utils/styling";
 import Typo from "./typo";
 import { FlashList } from "@shopify/flash-list";
 import Loading from "./Loading";
-import { expenseCategories } from "@/constants/data";
+import { expenseCategories, incomeCategory } from "@/constants/data";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { Timestamp } from "firebase/firestore";
 
 const TransactionList = ({
   data,
@@ -43,18 +44,18 @@ const TransactionList = ({
       ) : (
         <View style={{ flex: 1, minHeight: 2 }}>
           <FlashList
-  data={data}
-  keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-  renderItem={({ item, index }) => (
-    <TransactionItem
-      item={item}
-      index={index}
-      handleClick={handleClick}
-    />
-  )}
-  getItemType={() => "transaction"}
-  showsVerticalScrollIndicator={false}
-/>
+            data={data}
+            keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+            renderItem={({ item, index }) => (
+              <TransactionItem
+                item={item}
+                index={index}
+                handleClick={handleClick}
+              />
+            )}
+            getItemType={() => "transaction"}
+            showsVerticalScrollIndicator={false}
+          />
         </View>
       )}
     </View>
@@ -66,8 +67,22 @@ const TransactionItem = ({
   index,
   handleClick,
 }: TransactionItemProps) => {
-  let category = expenseCategories["utilities"];
-  const IconComponent = category.icon;
+
+  let category = 
+    item?.type === "income" 
+      ? incomeCategory 
+      : expenseCategories[item.category!];
+  
+  const IconComponent = category?.icon;
+  
+  const date = (item?.date as Timestamp)?.toDate()?.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short"
+  });
+
+  if (!category) {
+    return null;
+  }
 
   return (
     <Animated.View
@@ -77,27 +92,30 @@ const TransactionItem = ({
         style={styles.row} 
         onPress={() => handleClick(item)}
       >
-        <View style={[styles.icon, { backgroundColor: category.bgColor }]}>
+        <View style={[styles.icon, { backgroundColor: category?.bgColor }]}>
           {IconComponent && (
             <IconComponent size={25} weight="fill" color="white" />
           )}
         </View>
         <View style={styles.categoryDes}>
-          <Typo size={17}>{category.label}</Typo>
+          <Typo size={17}>{category?.label}</Typo>
           <Typo
             size={12}
             color={colors.neutral400}
             textProps={{ numberOfLines: 1 }}
           >
-            paid wifi bill
+            {item?.description || 'No description'}
           </Typo>
         </View>
         <View style={styles.amountDate}>
-          <Typo fontWeight={"500"} color={colors.rose}>
-            - $23
+          <Typo 
+            fontWeight={"500"} 
+            color={item?.type === 'income' ? colors.primary : colors.rose}
+          >
+            {item?.type === "income" ? `+ $${item?.amount}` : `- $${item?.amount}`}
           </Typo>
           <Typo size={12} color={colors.neutral400}>
-            12 jan
+            {date}
           </Typo>
         </View>
       </TouchableOpacity>
@@ -111,6 +129,7 @@ const styles = StyleSheet.create({
   container: {
     gap: spacingY._17,
     flex: 1,
+  
   },
   row: {
     flexDirection: "row",
